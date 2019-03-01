@@ -94,9 +94,9 @@ ext {
   skipSigning = project.hasProperty('skipSigning') && skipSigning.toBoolean()
   shouldSign = !skipSigning && !version.endsWith("SNAPSHOT") && project.gradle.startParameter.taskNames.any { it.contains("upload") }
 
-  mavenUrl = project.hasProperty('mavenUrl') ? project.mavenUrl : ''
-  mavenUsername = project.hasProperty('mavenUsername') ? project.mavenUsername : ''
-  mavenPassword = project.hasProperty('mavenPassword') ? project.mavenPassword : ''
+  bintrayUsername = System.getenv('BINTRAY_USER')
+  bintrayKey=System.getenv('BINTRAY_KEY')
+  bintrayUrl = bintrayApiBaseUrl + '/maven/' + bintrayUsername + '/' + bintrayRepo + '/' + bintrayPackage + '/;publish=1'
 
   userShowStandardStreams = project.hasProperty("showStandardStreams") ? showStandardStreams : null
 
@@ -168,18 +168,18 @@ subprojects {
           required { shouldSign }
           sign configurations.archives
 
-          // To test locally, replace mavenUrl in ~/.gradle/gradle.properties to file://localhost/tmp/myRepo/
+          // To test locally, replace bintrayUrl in ~/.gradle/gradle.properties to file://localhost/tmp/myRepo/
           mavenDeployer {
               beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-              repository(url: "${mavenUrl}") {
-                  authentication(userName: "${mavenUsername}", password: "${mavenPassword}")
+              repository(url: "${bintrayUrl}") {
+                  authentication(userName: "${bintrayUsername}", password: "${bintrayKey}")
               }
               afterEvaluate {
                   pom.artifactId = "${archivesBaseName}"
                   pom.project {
-                      name 'Apache Kafka'
+                      name 'LinkedIn branch of Apache Kafka'
                       packaging 'jar'
-                      url 'http://kafka.apache.org'
+                      url 'http://github.com/linkedin/kafka'
                       licenses {
                           license {
                               name 'The Apache Software License, Version 2.0'
