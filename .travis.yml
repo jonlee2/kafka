@@ -15,40 +15,40 @@ dist: trusty
 language: java
 
 env:
-  - _DUCKTAPE_OPTIONS="--subset 0  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 1  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 2  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 3  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 4  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 5  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 6  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 7  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 8  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 9  --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 10 --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 11 --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 12 --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 13 --subsets 15"
-  - _DUCKTAPE_OPTIONS="--subset 14 --subsets 15"
+  global:
+    # These secure values are encrypted for linkedin/kafka. For use in forked repos, set env vars in your own build - they should win over these (as these won't be decodable in forked builds).
+    - secure: gL8grv297Pvd6L8XvuBXOYELe2pzs2Or7sdyz/SBCoiwLzCIQhf2/gHphzxgfj4Lk5bp4z3A3Vzlflp23sczWVMZ4g1jHyIPUppszdV2aI/pZUDVpZ81crph+neYbCuCFyfiuOwP1gB6QmETrxcQM7GiqaaS3xLoCDOiX/VNLAsYytvOvHIphADGCeB9q3uSYGREzBdwsU8ReyYiFz5pVdXCjET001mXejx5h7/92yPVlbpYPcMN4oPEo5Amt0y4k07JEico+fXy8H7pimZj3BgBGMaPpswWfZZPXD+NWYjIKFvG0nsrqs1sg+8s/7iBBLiYWpPvHZezmIGdDBnRnM2wm/tyrTPpfLru3ABM4Z25ECQMtItRD4xye182e2FlMKKzAMwHj5AZtNZTFNVGW5lNvUS+ytzPHoMzLF5mAprtYonBcW5tsN4SagqNonFxbHYJOgFe9vjWJRSDxYVihvLSfXt8ZRr7SbCYefIHfaN/ittXzbaHxnUenpN17W4MQK3U0LmbEVuCEMFq2w9xu2JVsBPx1MUFcTCrp3mEtGMIlv9PpPnswAxmJ04z9JoWpWlghaFmeuh0uFc17GTGJDi6jzONtNPDyRbOUTHcmZK7HSTi+QjCWLdMJWUjVmpyyGvKEws9ZoRlPERhzWWytF40iGhvKF7JqXaI+0KObs0=
+    - secure: VAWVKZjWIkXRV0aMhSC5MwGxG8E1pp3jwSoR+8uMAovfIdYbbg+Amc9TzsjCozdC+yiWjoW3eFilh+7lklCbBAPoyJfWuWNTuBuRUtxJqcVicvatmaT9yFUVCj0nAoeAxCJZiJ7wMrnPZuF/KyAT+WNF5VfmTS03SzvCQr61D/PNkzFH2Ab4a9hZZThp4p3wdNYsSJEp2X2CjD5k57AIvoinoxC8I8mdA9bdD9zGh9Rm7hxBKYBH9BerSTCFlDcuYc6LGVc8W/vGcG25ET+ccaMQ1yBUAi8JDwUEVQhR7U7IF6CcO3h1pYahUttyGoDKxQZ8lWj2ri47czzY/KlJaofndZyOK2x3wRDVTJPDBkP3z/8+la+r7P+FyKcyzirrgpzp+8+CnbZCt5e+2nWlYV7RShxfw0ZXxStTJw1aJGpcCrAMLym77P/SY0I2FlvT68SvZGN6plwCn3VmLZdh06xtGnfVjXT13igJ3pZn0p2uZWkukfU7C46WdpKYfgecP2GDD4ccPPAY6BmcHShbZsRMZMkqqYB7eGAlg7ufgibKVWMPXNi6e+2o5Qxy5wl8D0djJdJrFIioQOqdWsPUi1LR9G1bDxCK2HY78Luu3zELyys8CGhNXEAGl5lvzbt2QH//mwJ7GM7/yuJEJm02ZNuzI1FCiXENHiuOwpVgsQ0=
 
 jdk:
   - oraclejdk8
-
+  
 before_install:
   - gradle wrapper
 
-script:
-  - ./gradlew rat
-  - ./gradlew systemTestLibs && /bin/bash ./tests/docker/run_tests.sh
+# By default, the install step will run ./gradlew assemble, which actually builds. Skip this step and do the actual
+# build during the build step.
+install: true
 
-services:
-  - docker
+script:
+  - ./gradlew clean compileJava compileScala compileTestJava compileTestScala checkstyleMain checkstyleTest findbugsMain --no-daemon -PxmlFindBugsReport=true -PtestLoggingEvents=started,passed,skipped,failed 
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
 cache:
   directories:
     - "$HOME/.m2/repository"
     - "$HOME/.gradle/caches/"
     - "$HOME/.gradle/wrapper/"
+
+# This will triger publishing artifacts to bintray upon the creation of a new tag in the "x.y.z.w" format in *-li branches
+deploy:
+  provider: script
+  script: ./gradlew -Pversion=$TRAVIS_TAG uploadArchivesAll
+  skip_cleanup: true
+  on:
+    tags: true
+    all_branches: true
+    condition: $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ && $TRAVIS_BRANCH =~ .*-li$

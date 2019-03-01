@@ -173,11 +173,11 @@ subprojects {
           required { shouldSign }
           sign configurations.archives
 
-          // To test locally, replace mavenUrl in ~/.gradle/gradle.properties to file://localhost/tmp/myRepo/
+          // To test locally, replace bintrayUrl in ~/.gradle/gradle.properties to file://localhost/tmp/myRepo/
           mavenDeployer {
               beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-              repository(url: "${mavenUrl}") {
-                  authentication(userName: "${mavenUsername}", password: "${mavenPassword}")
+              repository(url: "${bintrayUrl}") {
+                  authentication(userName: "${bintrayUsername}", password: "${bintrayKey}")
               }
               afterEvaluate {
                   pom.artifactId = "${archivesBaseName}"
